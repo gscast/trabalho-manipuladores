@@ -111,10 +111,11 @@ hold on
 for i = 1:IRB120.n
     plot(control_sig(i,:))
 end
-name = legend('$\dot{q}_{1}$', '$\dot{q}_{2}$', '$\dot{q}_{3}$','$\dot{q}_{4}$', '$\dot{q}_{5}$', '$\dot{q}_{6}$', '$\dot{q}_{7}$');
+name = legend('$\dot{q}_{1}$', '$\dot{q}_{2}$', '$\dot{q}_{3}$', ...
+    '$\dot{q}_{4}$', '$\dot{q}_{5}$', '$\dot{q}_{6}$', '$\dot{q}_{7}$');
 set(name,'Interpreter','latex');
 xlabel('Iterações')
-ylabel('Velocidade/sinal de controle: u(rad/s)')
+ylabel('Velocidade/sinal de controle (m/s, rad/s)')
 hold off
 
 % plot errors
@@ -133,4 +134,4 @@ for i = 1:6
 end
 legend('erro x', 'erro y', 'erro z', 'erro \psi', 'erro \omega', 'erro \phi');
 xlabel('Iterações')
-ylabel('Erro (rad, m)')
+ylabel('Erro (m, rad)')
