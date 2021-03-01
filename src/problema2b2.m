@@ -21,12 +21,12 @@ IRB120.plot(qi');
 hold on
 
 % Initialize control parameters
-K = 0.5;
+K = 1;
 q = qi;
 e = 0;
 
 % Allocate time series
-t_step = 0.05;
+t_step = 0.04;
 t = 1:t_step:100;
 t0 = 0;
 
