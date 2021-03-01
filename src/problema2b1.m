@@ -5,12 +5,16 @@ close all;
 % Join trail with IRB120
 IRB120 = make_trail() * makeIRB120();
 qi = [0 0 0 0 0 -pi/2 0]';
-rpy_d = [0 0 0]';
 
-% circle params
+% path params
 pc = [0.428, 0.500, 0.569]';
 radius = 0.050;
 wn = pi/10;
+
+% Desired pose params
+pd = circle_xz(radius, pc, 0, wn);
+rpy_d = [0 0 0]';
+xd_ant = [pd; rpy_d];
 
 % plot the IRB120 in its initial configuration
 % and the desired pose
@@ -19,14 +23,14 @@ IRB120.plot(qi');
 hold on
 
 % Initialize control parameters
-K = 1;
+K = 0.5;
 q = qi;
 e = 0;
 
-x_ant = zeros(1, 6)';
-
 % Allocate time series
-t = 1:0.5:50;
+t_step = 0.1;
+t = 1:t_step:50;
+t0 = 0;
 
 % Pre allocate vectors for plotting
 path = zeros(3, length(t));
@@ -37,15 +41,20 @@ err = zeros(6, length(t));
 nerr = zeros(length(t));
 
 for i = 1:length(t)
+        
     % get homogeneous transform from current join configuration
     % using forward kinematics
     T = IRB120.fkine(q);
-    [R, p] = tr2rt(T);
     % extract rotation matrix and translation vector
+    [R, p] = tr2rt(T);
     
-    pd = circle_xz(radius, pc, t(i), wn);
-    x = [pd; rpy_d];
-    dx = x - x_ant;
+    % actuator in path
+    if t0
+        pd = circle_xz(radius, pc, t(i) - t0, wn);
+    %actuator has not reached path point
+    elseif norm(pd - p) <= 1e-4
+        t0 = t(i);
+    end
     
     % calculate position error
     p_err = pd - p;
@@ -53,28 +62,32 @@ for i = 1:length(t)
     % convert rotation matrix to row-pitch-yaw configuration
     rpy = tr2rpy(R);
     % calculate rotation error and assemble error vector
-    rpy_err = rpy_d' - rpy;
-    e = [p_err; rpy_err'];
+    rpy_err = rpy_d - rpy';
+    e = [p_err; rpy_err];
+    
+    
+    xd = [pd; rpy_d];
+    dxd = xd - xd_ant;
     
     % Get jacobian
     J = IRB120.jacob0(q, 'rpy');
     % Control 
-    u = pinv(J)*(dx + K*e);
+    u = speed_saturation(pinv(J)*(K*e), t_step);
     % Integration of the q' signal
     q = q + 0.1*u;
     
     IRB120.plot(q'); % plot current configuration
     plotp(p, '.c'); % plot path
     
-    x_ant = x;
-    
     % store parameters
-    control_sig(:,i) = u;
+    control_sig(:,i) = u * t_step;
     path(:, i) = p;
     qpath(:, i) = q';
     rpy_path(:, i) = rpy;
     err(:, i) = e';
     nerr(i) = norm(e);
+    
+    xd_ant = xd;
 
 end
 
@@ -109,7 +122,7 @@ for i = 1:IRB120.n
 end
 legend('q_1', 'q_2', 'q_3', 'q_4', 'q_5', 'q_6', 'q_7');
 xlabel('Iterações');
-ylabel('Angulo (rad)');
+ylabel('Deslocamento (m, rad)');
 
 % plot joint speed over time
 figure(4)

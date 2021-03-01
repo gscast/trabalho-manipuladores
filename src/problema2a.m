@@ -21,12 +21,13 @@ hold on
 trplot(Td, 'rgb');
 
 % Initialize control parameters
-K = 1;
+K = 0.5;
 q = qi;
 e = 0;
 
 % Allocate time series
-t = 1:0.1:5;
+t_step = 0.1;
+t = 1:t_step:10;
 
 % Pre allocate vectors for plotting
 path = zeros(3, length(t));
@@ -55,7 +56,7 @@ for i = 1:length(t)
     % Get jacobian
     J = IRB120.jacob0(q, 'rpy');
     % Control 
-    u = pinv(J)*(K*e);
+    u = speed_saturation(pinv(J)*(K*e), t_step);
     % Integration of the q' signal
     q = q + 0.1*u;
     
@@ -63,7 +64,7 @@ for i = 1:length(t)
     plotp(p, '.c'); % plot path
     
     % store parameters
-    control_sig(:,i) = u;
+    control_sig(:,i) = u * t_step;
     path(:, i) = p;
     qpath(:, i) = q';
     rpy_path(:, i) = rpy;
@@ -103,7 +104,7 @@ for i = 1:IRB120.n
 end
 legend('q_1', 'q_2', 'q_3', 'q_4', 'q_5', 'q_6', 'q_7');
 xlabel('Iterações');
-ylabel('Angulo (rad)');
+ylabel('Deslocamento (m, rad)');
 
 % plot joint speed over time
 figure(4)
