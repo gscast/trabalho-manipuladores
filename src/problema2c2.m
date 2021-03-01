@@ -13,6 +13,7 @@ wn = pi/10;
 pd = b2_path(10, wn);
 rpy_d = [0 0 0]';
 xd_ant = [pd; rpy_d];
+w_ant = ones(1, IRB120.n)' * joint_limit(qi, IRB120.qlim);
 
 % plot the IRB120 in its initial configuration
 % and the desired pose
@@ -21,7 +22,8 @@ IRB120.plot(qi');
 hold on
 
 % Initialize control parameters
-K = 0.14;
+K = 0.05;
+K_0 = 0.005;
 q = qi;
 e = 0;
 
@@ -68,6 +70,19 @@ for i = 1:length(t)
     
     % Get jacobian
     J = IRB120.jacob0(q, 'rpy');
+    
+    % get kinematic optimization factor
+    w = ones(1, IRB120.n)' * joint_limit(q, IRB120.qlim);
+    dw = w - w_ant;
+    
+    % Control 
+    kine_cntrl = (eye(IRB120.n) - pinv(J)*J)*K_0*dw;
+    u = pinv(J)*(dxd + K*e) + kine_cntrl;
+    u = speed_saturation(u, t_step);
+    
+    % Integration of the q' signal
+    q = q + 0.1*u;
+    
     % Control 
     u = speed_saturation(pinv(J)*(K*e), t_step);
     % Integration of the q' signal
