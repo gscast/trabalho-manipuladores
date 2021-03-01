@@ -6,28 +6,33 @@ close all;
 IRB120 = make_trail() * makeIRB120();
 qi = [0 0 0 0 0 -pi/2 0]';
 
-% Get desired pose from the position and
-% rotation matrix from row -pitch-yaw angles.
-xd = [0.380 0.580 0.600 0 0 0]';
-pd = xd(1:3);
-Rd = rpy2r(xd(4:end)');
-Td = rt2tr(Rd, pd);
+% path params
+pc = [0.428, 0.500, 0.569]';
+radius = 0.050;
+wn = pi/10;
+
+% Desired pose params
+pd = circle_xz(radius, pc, 0, wn);
+rpy_d = [0 0 0]';
+xd_ant = [pd; rpy_d];
+w_ant = ones(1, IRB120.n)' * joint_limit(qi, IRB120.qlim);
 
 % plot the IRB120 in its initial configuration
 % and the desired pose
 figure(1)
 IRB120.plot(qi');
 hold on
-trplot(Td, 'rgb');
 
 % Initialize control parameters
 K = 0.5;
+K_0 = 0.2;
 q = qi;
 e = 0;
 
 % Allocate time series
 t_step = 0.1;
-t = 1:t_step:10;
+t = 1:t_step:50;
+t0 = 0;
 
 % Pre allocate vectors for plotting
 path = zeros(3, length(t));
@@ -38,11 +43,20 @@ err = zeros(6, length(t));
 nerr = zeros(length(t));
 
 for i = 1:length(t)
+        
     % get homogeneous transform from current join configuration
     % using forward kinematics
     T = IRB120.fkine(q);
     % extract rotation matrix and translation vector
     [R, p] = tr2rt(T);
+    
+    % actuator in path
+    if t0
+        pd = circle_xz(radius, pc, t(i) - t0, wn);
+    %actuator has not reached path point
+    elseif norm(pd - p) <= 1e-4
+        t0 = t(i);
+    end
     
     % calculate position error
     p_err = pd - p;
@@ -50,13 +64,25 @@ for i = 1:length(t)
     % convert rotation matrix to row-pitch-yaw configuration
     rpy = tr2rpy(R);
     % calculate rotation error and assemble error vector
-    rpy_err = tr2rpy(Rd) - rpy;
-    e = [p_err; rpy_err'];
+    rpy_err = rpy_d - rpy';
+    e = [p_err; rpy_err];
+    
+    
+    xd = [pd; rpy_d];
+    dxd = xd - xd_ant;
     
     % Get jacobian
     J = IRB120.jacob0(q, 'rpy');
+    
+    % get kinematic optimization factor
+    w = ones(1, IRB120.n)' * joint_limit(q, IRB120.qlim);
+    dw = w - w_ant;
+    
     % Control 
-    u = speed_saturation(pinv(J)*(K*e), t_step);
+    kine_cntrl = (eye(IRB120.n) - pinv(J)*J)*K_0*dw;
+    u = pinv(J)*(dxd + K*e) + kine_cntrl;
+    u = speed_saturation(u, t_step);
+    
     % Integration of the q' signal
     q = q + 0.1*u;
     
@@ -70,6 +96,8 @@ for i = 1:length(t)
     rpy_path(:, i) = rpy;
     err(:, i) = e';
     nerr(i) = norm(e);
+    
+    xd_ant = xd;
 
 end
 
