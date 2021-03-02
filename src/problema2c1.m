@@ -75,8 +75,7 @@ for i = 1:length(t)
     J = IRB120.jacob0(q, 'rpy');
     
     % get kinematic optimization factor
-    w = ones(1, IRB120.n)' * joint_limit(q, IRB120.qlim);
-    dw = w - w_ant;
+    dw = get_dw(q, IRB120.qlim);
     
     % Control 
     kine_cntrl = (eye(IRB120.n) - pinv(J)*J)*K_0*dw;
