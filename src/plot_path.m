@@ -1,7 +1,7 @@
 function plot_path(path, rpy_path)
 % plot actuator path and angle path over time
 figure(2)
-tiledlayout(1, 2)
+t = tiledlayout(1, 2);
 
 nexttile
 plotp(path, '-r');
@@ -17,6 +17,9 @@ end
 legend('row \psi', ' pitch \theta', 'yaw \phi');
 xlabel('Iterações');
 ylabel('Angulo (rad)');
+
+exportgraphics(t, "C:\Users\gabri\OneDrive\Desktop\2.jpg", 'Resolution',300)
 hold off
+
 end
 

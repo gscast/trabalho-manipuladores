@@ -1,8 +1,9 @@
 function plot_errors(err)
 % plot errors
+
+figure(5);
 nerr = vecnorm(err);
-figure(5)
-tiledlayout(1, 2)
+t = tiledlayout(1, 2);
 
 nexttile
 plot(nerr)
@@ -17,6 +18,9 @@ end
 legend('erro x', 'erro y', 'erro z', 'erro \psi', 'erro \omega', 'erro \phi');
 xlabel('Iterações')
 ylabel('Erro (m, rad)')
+
+exportgraphics(t, "C:\Users\gabri\OneDrive\Desktop\5.jpg",'Resolution',300)
 hold off
+
 end
 

@@ -13,7 +13,6 @@ wn = pi/10;
 pd = b2_path(10, wn);
 rpy_d = [0 0 0]';
 xd_ant = [pd; rpy_d];
-w_ant = ones(1, IRB120.n)' * joint_limit(qi, IRB120.qlim);
 
 % plot the IRB120 in its initial configuration
 % and the desired pose
@@ -22,14 +21,14 @@ IRB120.plot(qi');
 hold on
 
 % Initialize control parameters
-K = 0.05;
-K_0 = 0.005;
+K = 0.1;
+K_0 = 1e-4;
 q = qi;
 e = 0;
 
 % Allocate time series
-t_step = 0.1;
-t = 1:t_step:90;
+dt = 0.1;
+t = 1:dt:120;
 t0 = 0;
 
 % Pre allocate vectors for plotting
@@ -38,7 +37,6 @@ rpy_path = zeros(3, length(t));
 qpath = zeros(IRB120.n, length(t));
 control_sig = zeros(IRB120.n, length(t));
 err = zeros(6, length(t));
-nerr = zeros(length(t));
 
 for i = 1:length(t)
         
@@ -60,30 +58,21 @@ for i = 1:length(t)
     p_err = pd - p;
     
     % convert rotation matrix to row-pitch-yaw configuration
-    rpy = tr2rpy(R);
+    rpy = tr2rpy(R)';
     % calculate rotation error and assemble error vector
-    rpy_err = rpy_d - rpy';
+    rpy_err = rpy_d - rpy;
     e = [p_err; rpy_err];
     
     xd = [pd; rpy_d];
-    dxd = xd - xd_ant;
+    dxd = (xd - xd_ant)/dt;
     
     % Get jacobian
     J = IRB120.jacob0(q, 'rpy');
-    
-    % get kinematic optimization factor
-    w = get_dw(q, IRB120.qlim);
-    
     % Control 
+    dw = get_dw(q, IRB120.qlim);
     kine_cntrl = (eye(IRB120.n) - pinv(J)*J)*K_0*dw;
     u = pinv(J)*(dxd + K*e) + kine_cntrl;
-    u = speed_saturation(u, t_step);
-    
-    % Integration of the q' signal
-    q = q + 0.1*u;
-    
-    % Control 
-    u = speed_saturation(pinv(J)*(K*e), t_step);
+    u = speed_saturation(u, dt);
     % Integration of the q' signal
     q = q + 0.1*u;
     
@@ -91,77 +80,19 @@ for i = 1:length(t)
     plotp(p, '.c'); % plot path
     
     % store parameters
-    control_sig(:,i) = u * t_step;
+    control_sig(:,i) = u * dt;
     path(:, i) = p;
     qpath(:, i) = q';
     rpy_path(:, i) = rpy;
     err(:, i) = e';
-    nerr(i) = norm(e);
     
     xd_ant = xd;
 
 end
 
-% plotp(path);
 hold off
 
-% plot actuator path and angle path over time
-figure(2)
-tiledlayout(1, 2)
-
-nexttile
-plotp(path, '-r');
-xlabel('X (m)');
-ylabel('Y (m)');
-zlabel('Z (m)');
-
-nexttile
-hold on
-for i = 1:3
-    plot(rpy_path(i, :));
-end
-hold off
-legend('row \psi', ' pitch \theta', 'yaw \phi');
-xlabel('Iterações');
-ylabel('Angulo (rad)');
-
-% plot join configurations x time
-figure(3)
-hold on
-for i = 1:IRB120.n
-    plot(qpath(i, :));
-end
-legend('q_1', 'q_2', 'q_3', 'q_4', 'q_5', 'q_6', 'q_7');
-xlabel('Iterações');
-ylabel('Deslocamento (m, rad)');
-
-% plot joint speed over time
-figure(4)
-hold on
-for i = 1:IRB120.n
-    plot(control_sig(i,:))
-end
-name = legend('$\dot{q}_{1}$', '$\dot{q}_{2}$', '$\dot{q}_{3}$', ...
-    '$\dot{q}_{4}$', '$\dot{q}_{5}$', '$\dot{q}_{6}$', '$\dot{q}_{7}$');
-set(name,'Interpreter','latex');
-xlabel('Iterações')
-ylabel('Velocidade/sinal de controle (m/s, rad/s)')
-hold off
-
-% plot errors
-figure(5)
-tiledlayout(1, 2)
-
-nexttile
-plot(nerr)
-xlabel('Iterações')
-ylabel('Norma do erro: |e|')
-
-nexttile
-hold on
-for i = 1:6
-    plot(err(i,:))
-end
-legend('erro x', 'erro y', 'erro z', 'erro \psi', 'erro \omega', 'erro \phi');
-xlabel('Iterações')
-ylabel('Erro (m, rad)')
+plot_path(path, rpy_path);
+plot_joint_config(qpath);
+plot_joint_speed(control_sig);
+plot_errors(err);
