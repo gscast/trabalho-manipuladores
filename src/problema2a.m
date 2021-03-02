@@ -4,10 +4,9 @@ close all;
 
 % Join trail with IRB120
 IRB120 = make_trail() * makeIRB120();
-qi = [0 0 0 0 0 -pi/2 0]';
+q = [0 0 0 0 0 -pi/2 0]';
 
-% Get desired pose from the position and
-% rotation matrix from row -pitch-yaw angles.
+% Get desired pose
 xd = [0.380 0.580 0.600 0 0 0]';
 pd = xd(1:3);
 Rd = rpy2r(xd(4:end)');
@@ -16,18 +15,17 @@ Td = rt2tr(Rd, pd);
 % plot the IRB120 in its initial configuration
 % and the desired pose
 figure(1)
-IRB120.plot(qi');
+IRB120.plot(q');
 hold on
 trplot(Td, 'rgb');
 
 % Initialize control parameters
-K = 0.5;
-q = qi;
+K = 1;
 e = 0;
 
 % Allocate time series
-t_step = 0.1;
-t = 1:t_step:10;
+dt = 0.1;
+t = 1:dt:20;
 
 % Pre allocate vectors for plotting
 path = zeros(3, length(t));
@@ -35,28 +33,26 @@ rpy_path = zeros(3, length(t));
 qpath = zeros(IRB120.n, length(t));
 control_sig = zeros(IRB120.n, length(t));
 err = zeros(6, length(t));
-nerr = zeros(length(t));
 
 for i = 1:length(t)
-    % get homogeneous transform from current join configuration
+    % get rotation and translation from current join configuration
     % using forward kinematics
     T = IRB120.fkine(q);
-    % extract rotation matrix and translation vector
     [R, p] = tr2rt(T);
     
     % calculate position error
     p_err = pd - p;
     
     % convert rotation matrix to row-pitch-yaw configuration
+    % and calculate orientation error
     rpy = tr2rpy(R);
-    % calculate rotation error and assemble error vector
     rpy_err = tr2rpy(Rd) - rpy;
     e = [p_err; rpy_err'];
     
-    % Get jacobian
+    % Control implementation
     J = IRB120.jacob0(q, 'rpy');
-    % Control 
-    u = speed_saturation(pinv(J)*(K*e), t_step);
+    u = pinv(J)*(K*e);
+    u = speed_saturation(u, dt);
     % Integration of the q' signal
     q = q + 0.1*u;
     
@@ -64,75 +60,16 @@ for i = 1:length(t)
     plotp(p, '.c'); % plot path
     
     % store parameters
-    control_sig(:,i) = u * t_step;
+    control_sig(:,i) = u * dt;
     path(:, i) = p;
     qpath(:, i) = q';
     rpy_path(:, i) = rpy;
     err(:, i) = e';
-    nerr(i) = norm(e);
-
-end
-
-% plotp(path);
-hold off
-
-% plot actuator path and angle path over time
-figure(2)
-tiledlayout(1, 2)
-
-nexttile
-plotp(path, '-r');
-xlabel('X (m)');
-ylabel('Y (m)');
-zlabel('Z (m)');
-
-nexttile
-hold on
-for i = 1:3
-    plot(rpy_path(i, :));
+    
 end
 hold off
-legend('row \psi', ' pitch \theta', 'yaw \phi');
-xlabel('Iterações');
-ylabel('Angulo (rad)');
 
-% plot join configurations x time
-figure(3)
-hold on
-for i = 1:IRB120.n
-    plot(qpath(i, :));
-end
-legend('q_1', 'q_2', 'q_3', 'q_4', 'q_5', 'q_6', 'q_7');
-xlabel('Iterações');
-ylabel('Deslocamento (m, rad)');
-
-% plot joint speed over time
-figure(4)
-hold on
-for i = 1:IRB120.n
-    plot(control_sig(i,:))
-end
-name = legend('$\dot{q}_{1}$', '$\dot{q}_{2}$', '$\dot{q}_{3}$', ...
-    '$\dot{q}_{4}$', '$\dot{q}_{5}$', '$\dot{q}_{6}$', '$\dot{q}_{7}$');
-set(name,'Interpreter','latex');
-xlabel('Iterações')
-ylabel('Velocidade/sinal de controle (m/s, rad/s)')
-hold off
-
-% plot errors
-figure(5)
-tiledlayout(1, 2)
-
-nexttile
-plot(nerr)
-xlabel('Iterações')
-ylabel('Norma do erro: |e|')
-
-nexttile
-hold on
-for i = 1:6
-    plot(err(i,:))
-end
-legend('erro x', 'erro y', 'erro z', 'erro \psi', 'erro \omega', 'erro \phi');
-xlabel('Iterações')
-ylabel('Erro (m, rad)')
+plot_path(path, rpy_path);
+plot_joint_config(qpath);
+plot_joint_speed(control_sig);
+plot_errors(err);

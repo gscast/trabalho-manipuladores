@@ -23,7 +23,7 @@ IRB120.plot(qi');
 hold on
 
 % Initialize control parameters
-K = 0.5;
+K = 0.8;
 q = qi;
 e = 0;
 
@@ -60,11 +60,10 @@ for i = 1:length(t)
     p_err = pd - p;
     
     % convert rotation matrix to row-pitch-yaw configuration
-    rpy = tr2rpy(R);
+    rpy = tr2rpy(R)';
     % calculate rotation error and assemble error vector
-    rpy_err = rpy_d - rpy';
+    rpy_err = rpy_d - rpy;
     e = [p_err; rpy_err];
-    
     
     xd = [pd; rpy_d];
     dxd = xd - xd_ant;
