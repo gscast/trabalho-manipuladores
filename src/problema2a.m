@@ -46,8 +46,8 @@ for i = 1:length(t)
     % convert rotation matrix to row-pitch-yaw configuration
     % and calculate orientation error
     rpy = tr2rpy(R);
-    rpy_err = tr2rpy(Rd) - rpy;
-    e = [p_err; rpy_err'];
+    rpy_err = (tr2rpy(Rd) - rpy)';
+    e = [p_err; rpy_err];
     
     % Control implementation
     J = IRB120.jacob0(q, 'rpy');
