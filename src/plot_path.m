@@ -14,11 +14,11 @@ hold on
 for i = 1:3
     plot(rpy_path(i, :));
 end
-legend('row \psi', ' pitch \theta', 'yaw \phi');
+legend('roll \psi', ' pitch \theta', 'yaw \phi');
 xlabel('Iterações');
 ylabel('Angulo (rad)');
 
-exportgraphics(t, "C:\Users\gabri\OneDrive\Desktop\2.jpg", 'Resolution',300)
+% exportgraphics(t, "C:\Users\gabri\OneDrive\Desktop\2.jpg", 'Resolution',300)
 hold off
 
 end

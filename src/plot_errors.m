@@ -19,7 +19,7 @@ legend('erro x', 'erro y', 'erro z', 'erro \psi', 'erro \omega', 'erro \phi');
 xlabel('Iterações')
 ylabel('Erro (m, rad)')
 
-exportgraphics(t, "C:\Users\gabri\OneDrive\Desktop\5.jpg",'Resolution',300)
+% exportgraphics(t, "C:\Users\gabri\OneDrive\Desktop\5.jpg",'Resolution',300)
 hold off
 
 end

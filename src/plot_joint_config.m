@@ -10,7 +10,7 @@ legend(compose('q_%d', 1:size(qpath, 1)));
 xlabel('Iterações');
 ylabel('Deslocamento (m, rad)');
 
-exportgraphics(gca, "C:\Users\gabri\OneDrive\Desktop\3.jpg", 'Resolution',300)
+% exportgraphics(gca, "C:\Users\gabri\OneDrive\Desktop\3.jpg", 'Resolution',300)
 hold off
 
 end

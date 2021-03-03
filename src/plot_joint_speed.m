@@ -11,7 +11,7 @@ set(name,'Interpreter','latex');
 xlabel('Iterações')
 ylabel('Velocidade/sinal de controle (m/s, rad/s)')
 
-exportgraphics(gca, "C:\Users\gabri\OneDrive\Desktop\4.jpg", 'Resolution',300)
+% exportgraphics(gca, "C:\Users\gabri\OneDrive\Desktop\4.jpg", 'Resolution',300)
 hold off
 
 end
